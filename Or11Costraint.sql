@@ -233,6 +233,176 @@ create table tb_foreign3 (
 alter table tb_foreign3 add
     foreign key (f_idx) references tb_primary1 (idx);
 
+/*
+외래키 삭제시 옵션
+[on delete casecade]
+    :부모레코드 삭제시 자식레코드까지 같이 삭제된다.
+    형식] 
+    컬럼명 자료형 refereneces 부모테이블(pk정렬)
+        on delete cacasde;
+[on delete set null]
+     : 부모레코드 삭제시 자식레코드 같이 null로 변경된다. 
+     형식] 
+     컬럼명 자료형 references 부모테이블 (pk컬럼)
+        on delete set null
+        
+※ 실무에서 스팸게시물을 남긴 회원과 그 게시글을 일괄적으로 삭제해야할 때 사용할 수 있는 옵션이다.
+    단, 자식 테이블의 모든 레코드가 삭제되므로 사용에 주의해야한다.
+*/
+--user_id 를 기본키로 설정한 부모테이블
+create table tb_primary4 (
+    user_id varchar2(30) primary key,
+    user_name varchar2(100)
+);
+--부모테이블의 user_id컬럼을 참조하는 외래키를 설정함
+create table tb_foreign4 (
+    f_idx number(10) primary key,
+    f_name varchar2(30),
+    user_id varchar2(30) constraint tb_foreign4_fk
+        references tb_primary4 (user_id)
+            on delete cascade
+);
+--부모 테이블에 먼저 레코드를 삽입해야한다.
+insert into tb_primary4 values('stu1', '훈련생1');
+--자식 테이블에 먼저 입력하면 무결성 제약조건 위배로 에러가 발생한다.
+insert into tb_foreign4 values(1,'스팸1', 'stu1');
+insert into tb_foreign4 values(2,'스팸2', 'stu1');
+insert into tb_foreign4 values(3,'스팸3', 'stu1');
+insert into tb_foreign4 values(4,'스팸4', 'stu1');
+insert into tb_foreign4 values(5,'스팸5', 'stu1');
+insert into tb_foreign4 values(6,'스팸6', 'stu1');
+--부모키가 없으므로 레코드를 삽입할 수 없다. 오류발생됨
+insert into tb_foreign4 values(7,'난?누구?', 'other1');
+
+--레코드 확인
+select * from tb_primary4;
+select * from tb_foreign4;
+--레코드 삭제 시도
+delete from tb_primary4 where user_id = 'stu1';
+/*부모테이블에서 레코드를 삭제할 경우on delete cascade 옵션에 의해 
+자식속까지 모든 레코드가 삭제된다. 만약 해당 옵션을 부여하지 않았다면
+레도는 삭제되지 않고 오류가 발생하게된다.*/
+-----------------------------------------
+--on delete set null test
+create table tb_primary5 (
+    user_id varchar2(30) primary key,
+    user_name varchar2(100)
+);
+
+create table tb_foreign5 (
+    f_idx number(10) primary key,
+    f_name varchar2(30),
+    user_id varchar2(30) constraint tb_foreign5_fk
+        references tb_primary5 (user_id)
+            on delete set null
+);
+
+insert into tb_primary5 values('stu1', '훈련생1');
+
+insert into tb_foreign5 values(1,'스팸1', 'stu1');
+insert into tb_foreign5 values(2,'스팸2', 'stu1');
+insert into tb_foreign5 values(3,'스팸3', 'stu1');
+insert into tb_foreign5 values(4,'스팸4', 'stu1');
+insert into tb_foreign5 values(5,'스팸5', 'stu1');
+insert into tb_foreign5 values(6,'스팸6', 'stu1');
+
+--레코드 확인
+select * from tb_primary5;
+select * from tb_foreign5;
+
+/*on delete set null  옵션으로 자식테이블의 레코드는 삭제되지 않고
+참조키 부분만  null값으로 변경된다. 따라서 더 이상 참조할 수 없는 레코드로 변경된다.*/
+delete from tb_primary5 where user_id = 'stu1';
+
+
+/*
+not null :  null값을 허용하지 않는 제약조건
+    형식]create table 테이블명 (
+        컬럼명 자료형 not null,
+        컬럼명 자료형 null <-null을 허용한다는 의미로 작성했지만
+                                    일반적으로 이렇게 사용하지 않는다.
+                                    null을 기술하지 않으면 자동으로 허용한다는 의미가된다.
+*/
+create table tb_not_null (
+    idx number(10) primary key,/* pk이므로 NN*/
+    id varchar2(20) not null,/*NN*/
+    pw varchar2(30) null,/*null허용, (일반적으로 이렇게 쓰지 않고 밑에처럼*/
+    name varchar2(40)/*null허용(이와같이 선언한다)*/
+);
+desc tb_not_null;
+--아래 3개의 레코드는 정상적으로 입력된다. 
+insert into tb_not_null values (1, 'hong', '1111', '홍길동');
+insert into tb_not_null values (2, 'yu', '2222', '');
+insert into tb_not_null values (3, 'son', '', '');
+--id컬럼은 NN이므로 null값을 입력할 수 없다. 에러발생.
+insert into tb_not_null values (4, '', '', '');
+--입력성공. space도 문자이므로 입력된다.
+insert into tb_not_null values (5, ' ', '5555', '제갈공명');
+--update tb_not_null set pw = '1111', name = 'hong' where idx = 1;
+/*오류발생. PK로 지정된 컬럼은 null값을 입력할 수 없다. insert 퀄리에서 컬럼을 명시하지 않으면 null값이
+입력된다.*/
+insert into tb_not_null (id, pw, name) values ('sa', '6666 ', '사오정');
+select * from tb_not_null;
+
+/*
+default : insert시 아무런 값도 입력되지 않았을 때 자동으로 삽입되는 데이터를 지정한다.
+*/
+create table tb_default (
+    id varchar2(30) not null,
+    pw varchar2(50) default 'qwerty'
+);
+select * from tb_default;
+--값이 지정되었으므로 1234가 입력된다.
+insert into tb_default values ('aaa', '1234');
+--컬럼 자체가 제외되었으므로 default값이 입력된다.
+insert into tb_default (id) values ('bbb');
+--이 경우에는 null값이 입력된다. 
+insert into tb_default values ('ccc', '');
+--공백(space)이 입력된다.
+insert into tb_default values ('ddd', ' ');
+--default값이 입력된다는 것을 명시하여  디폴트 값을 입력한다.
+insert into tb_default values ('eee', default);
+/*
+default값을 입력하려면 insert문에서 컬럼 자체를 제외시키거나 
+default 키워드를 사용햏야한다.
+*/
+
+/*
+check : Domain(자료형) 무결성을 유지하기 위한 제약조건으로 컬럼에 잘못된 데이터가 입력되지 
+        않도록 해주는 제약조건이다.
+*/
+--M, F만 입력을 허용하는 check 제약조건 지정
+create table tb_check1 (
+    gender char(1) not null
+        constraint check_gender
+            check (gender in ('M', 'F'))
+);
+insert into tb_check1 values ('M');
+insert into tb_check1 values ('F');
+insert into tb_check1 values ('T');--오류발생
+
+select * from tb_check1;
+
+--10이하의 값만 입력할 수 있는 check 제약조건
+create table tb_check2 (
+    sale_count number not null
+        check (sale_count <= 10)
+);
+
+insert into tb_check2 values ('10');
+insert into tb_check2 values ('11');--제약조건 위배로 오류발생
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

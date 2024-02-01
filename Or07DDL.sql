@@ -148,6 +148,46 @@ select * from tb_member where 1 = 1;
 desc tb_member_clone;
 select * from tb_member_clone;
 
+/*
+테이블 스페이스란?
+    디스크 공간을 소비하는 테이블과 뷰, 그리고 그 밖의 다른 데이터베이스 객체들이 저장되는 장소이다. 
+    예를 들어 오라클을 최초로 설치하면 hr계정의 데이터를 저장하는 user라는 테이블 스페이스가 자동으로
+    생성된다.
+*/
+--테이블스페이스를 조회할 수 있는 데이터 사전
+--desc 스키마 구조 볼때 쓰는 명령어
+desc dba_tablespaces;
+--현재 오라클 시스템에는 총 5개의 테이블 스페이스가 생성되어있다.
+select tablespace_name, status, contents from dba_tablespaces;
+--우리가 생성한 사용자 계정이 어떤 테이블스페이스를 사용하는지 조회
+select username, default_tablespace from dba_users
+where username in upper('test_user2');
+--사용자에게 테이블 스페이스를 할당한다. (2m 2mb를 뜻한다)
+alter user test_user2 quota 2m on users;
+
+/*
+즉 test_user2 사용자가 users라는 테이블스페이스에 2MB의 공간을 사용할 수 있도록 권한을
+부여하는 것이다. CMD에서 insert 해보면 정상적으로 입력된다. 
+*/
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
